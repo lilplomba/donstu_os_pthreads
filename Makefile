@@ -9,7 +9,7 @@ TARGET 	= app
 # log file produced by the program
 OUTPUT	= output.log
 # list of object files for linking (result of compiling too)
-OBJS	= main.o pthreadfuncs.o
+OBJS	= main.o pthreadfuncs.o experiments.o prodcons.o
 
 # Rule for making
 # target: dependencies
