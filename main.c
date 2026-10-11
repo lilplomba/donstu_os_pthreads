@@ -1,14 +1,15 @@
 #include "pthreadfuncs.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/syscall.h>
-
-
-int main(void) {
+// usage: ./app [mode]
+//   (no mode)  4 threads write to output.log          (tasks 18-21)
+//   nojoin     the same without pthread_join()        (task 9)
+//   nolock     the same without mutex                 (task 27)
+//   nolock-chunk  without mutex, line sent in pieces  (task 27)
+//   lock-chunk    the same pieces, but with mutex     (control)
+//   detach | retval | heap | counter | counter-lock | prodcons | ring
+//   equal | sigwait | sigquit                         (tasks 22-36)
+int main(int argc, char **argv) {
+    const char *mode = argc > 1 ? argv[1] : "basic";
     // headline
     about();
     // array with threads
@@ -28,24 +29,43 @@ int main(void) {
              getpid(), getppid(), g_fd);
     write_line(line);
 
-    // create structs for threads
-    for (int i = 0; i < COUNT_THREADS; ++i) {
-        args[i].id = i + 1;
-        snprintf(args[i].tag, sizeof(args[i].tag), "T%d", i);
-    }
-    
-    // create threads
-    for (int i = 0; i < COUNT_THREADS; i++) {
-        int rc = pthread_create(&threads[i], NULL, func_thread, &args[i]);
-        if (rc != 0) {
-            fprintf(stderr, "pthread_create: %s\n", strerror(rc));
-            return EXIT_FAILURE;
-        }
-    }
+    if (!strcmp(mode, "detach")) exp_detach();
+    else if (!strcmp(mode, "retval")) exp_retval();
+    else if (!strcmp(mode, "heap")) exp_heap();
+    else if (!strcmp(mode, "counter")) exp_counter(0);
+    else if (!strcmp(mode, "counter-lock")) exp_counter(1);
+    else if (!strcmp(mode, "prodcons")) prodcons_one();
+    else if (!strcmp(mode, "ring")) prodcons_ring();
+    else if (!strcmp(mode, "equal")) exp_equal();
+    else if (!strcmp(mode, "sigwait")) exp_sigwait();
+    else if (!strcmp(mode, "sigquit")) exp_sigquit();
+    else {
+        if (!strcmp(mode, "nolock")) g_use_lock = 0;
+        if (!strcmp(mode, "nolock-chunk")) { g_use_lock = 0; g_chunk = 1; }
+        if (!strcmp(mode, "lock-chunk")) g_chunk = 1;
 
-    // wait stoping all thread
-    for (int i = 0; i < COUNT_THREADS; i++) {
-        pthread_join(threads[i], NULL);
+        // create structs for threads
+        for (int i = 0; i < COUNT_THREADS; ++i) {
+            args[i].id = i + 1;
+            snprintf(args[i].tag, sizeof(args[i].tag), "T%d", i);
+            snprintf(args[i].message, sizeof(args[i].message), "hello from main to T%d", i);
+        }
+
+        // create threads
+        for (int i = 0; i < COUNT_THREADS; i++) {
+            int rc = pthread_create(&threads[i], NULL, func_thread, &args[i]);
+            if (rc != 0) {
+                fprintf(stderr, "pthread_create: %s\n", strerror(rc));
+                return EXIT_FAILURE;
+            }
+        }
+
+        // wait stoping all thread
+        if (strcmp(mode, "nojoin")) {
+            for (int i = 0; i < COUNT_THREADS; i++) {
+                pthread_join(threads[i], NULL);
+            }
+        }
     }
 
     // sys call for close file
