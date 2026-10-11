@@ -11,6 +11,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <time.h>
 #include <sys/syscall.h>
 
 
@@ -34,11 +35,14 @@ extern int g_fd;
 // mutex
 extern pthread_mutex_t g_lock;
 
+// pause in milliseconds
+void sleep_ms(long ms);
+
 // git ID of current thread
 pid_t getThreadID(void);
 
 // write a string from thread with mutex
-void write_line(const char *msg);
+int write_line(const char *msg);
 
 // pointer for thread's function
 void *func_thread(void *arg);

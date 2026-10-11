@@ -10,14 +10,27 @@ pid_t getThreadID(void) {
 }
 
 // write a string from thread with mutex
-void write_line(const char *msg) {
+// returns 0 on success, -1 on error
+int write_line(const char *msg) {
     pthread_mutex_lock(&g_lock);
     ssize_t n = write(g_fd, msg, strlen(msg));
     if (n < 0) {
-        // return error
         fprintf(stderr, "write() failed: %s, [file descr = %d]\n", strerror(errno), g_fd);
     }
     pthread_mutex_unlock(&g_lock);
+    return n < 0 ? -1 : 0;
+}
+
+// pause in milliseconds (nanosleep instead of the obsolete usleep)
+void sleep_ms(long ms) {
+    struct timespec ts = { ms / 1000, (ms % 1000) * 1000000L };
+    nanosleep(&ts, NULL);
+}
+
+// delay between iterations: environment variable SLEEP_MS (default 100 ms)
+static long delay_ms(void) {
+    const char *e = getenv("SLEEP_MS");
+    return e ? atol(e) : 100;
 }
 
 // function for thread
@@ -31,7 +44,7 @@ struct ThreadArgs *t = (struct ThreadArgs *)arg;
                  "[tag = %s] pid = %d ppid = %d tid = %d iter = %d\n", t->tag, getpid(), getppid(), getThreadID(), i);
         write_line(buf);
         // imitation of something
-        usleep(100 * 1000); /* 100 мс */
+        sleep_ms(delay_ms());
     }
     return NULL;
 }

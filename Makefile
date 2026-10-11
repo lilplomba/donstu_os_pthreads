@@ -3,9 +3,11 @@ CC		= gcc
 # Flags for compiling
 # all warnings, additional warnings and 
 # debug information
-CFLAGS  = -Wall -Wextra -g
+CFLAGS  = -Wall -Wextra -g -pthread
 # Name of execution file (result of compilation)
 TARGET 	= app
+# log file produced by the program
+OUTPUT	= output.log
 # list of object files for linking (result of compiling too)
 OBJS	= main.o pthreadfuncs.o
 
@@ -30,9 +32,17 @@ $(TARGET): $(OBJS)
 # compiler + flags + only compiling + first dependencies
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# build (if needed) and run
+run: $(TARGET)
+	./$(TARGET)
+
+# show the log
+log:
+	cat $(OUTPUT)
+
 # it's only actions
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(OBJS) $(TARGET) $(OUTPUT)
 
 # lay target
-.PHONY: clean
+.PHONY: run log clean

@@ -23,17 +23,16 @@ int main(void) {
         return EXIT_FAILURE;
     }
 
-    printf("main: pid = %d, opened file: \'output.log\' (fd = %d)\n", getThreadID(), g_fd);
+    char line[128];
+    snprintf(line, sizeof(line), "main: pid = %d, ppid = %d, opened file: 'output.log' (fd = %d)\n",
+             getpid(), getppid(), g_fd);
+    write_line(line);
 
     // create structs for threads
-    args[0].id  = 1;
-    strcpy(args[0].tag, "First\0");
-    args[1].id  = 2;
-    strcpy(args[1].tag, "Second\0");
-    args[2].id  = 3;
-    strcpy(args[2].tag, "Third\0");
-    args[3].id  = 4;
-    strcpy(args[3].tag, "Fourth\0");
+    for (int i = 0; i < COUNT_THREADS; ++i) {
+        args[i].id = i + 1;
+        snprintf(args[i].tag, sizeof(args[i].tag), "T%d", i);
+    }
     
     // create threads
     for (int i = 0; i < COUNT_THREADS; i++) {
